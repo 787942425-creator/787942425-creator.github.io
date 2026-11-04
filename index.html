@@ -13,9 +13,31 @@
     }
     header {
       text-align: center;
-      padding: 60px 20px 40px;
+      padding: 0 20px;
       background: #fff;
       border-bottom: 1px solid #eee;
+    }
+    .banner {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 32px;
+      padding: 24px 0;
+    }
+    .banner-copy { text-align: left; padding: 32px 0; }
+    .banner-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 520px;
+      object-fit: contain;
+    }
+    @media (max-width: 600px) {
+      .banner { grid-template-columns: 1fr; gap: 8px; }
+      .banner-copy { text-align: center; padding: 16px 0; }
+      .banner-image { max-height: 420px; }
     }
     header h1 { margin: 0; font-size: 2.5em; letter-spacing: 2px; }
     header p { margin: 10px 0 0; color: #888; font-size: 1.1em; }
@@ -55,8 +77,14 @@
 </head>
 <body>
   <header>
-    <h1>我的画作</h1>
-    <p>My Art Portfolio</p>
+    <div class="banner">
+      <div class="banner-copy">
+        <h1>我的画作</h1>
+        <p>My Art Portfolio</p>
+      </div>
+      <img class="banner-image" src="assets/banner.png" width="2125" height="2716"
+           alt="粉色与棕色纹理的女孩插画" fetchpriority="high">
+    </div>
   </header>
 
   <div class="gallery">
