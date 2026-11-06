@@ -139,7 +139,8 @@ if(!visible())return;
 const dx=pointer.x-(box.left+box.width/2);
 const dy=pointer.y-(box.top+box.height/2);
 // Independent axes keep upward/downward gaze clear even near screen corners.
-const nx=Math.max(-1,Math.min(1,dx/220));
+const horizontalRange=Math.min(220,Math.max(110,innerWidth*.32));
+const nx=Math.max(-1,Math.min(1,dx/horizontalRange));
 const ny=Math.max(-1,Math.min(1,dy/180));
 // Rightward glance makes the screen-right eye smaller and the left eye larger.
 eyes.style.setProperty('--look-tilt',(-nx*12).toFixed(2)+'deg');
@@ -171,15 +172,45 @@ eyes.classList.add(expression);
 openTimer=setTimeout(()=>{openTimer=0;eyes.classList.remove('blinking','squinting','angry');planBlink();},duration);
 },2500+Math.random()*4000);
 }
-window.addEventListener('pointermove',event=>{pointer={x:event.clientX,y:event.clientY};schedule();},{passive:true});
-document.documentElement.addEventListener('pointerleave',()=>{pointer=null;schedule();});
-window.addEventListener('blur',()=>{focused=false;pointer=null;schedule();stopBlink();});
+// Passive touch events continue during native scrolling without blocking the page.
+let activeTouch=null,returnTimer=0;
+function clearReturn(){clearTimeout(returnTimer);returnTimer=0;}
+function updatePointer(x,y){clearReturn();pointer={x,y};schedule();}
+function releaseTouch(){
+activeTouch=null;clearReturn();
+returnTimer=setTimeout(()=>{returnTimer=0;pointer=null;schedule();},1600);
+}
+function clearTouch(){activeTouch=null;clearReturn();pointer=null;schedule();}
+window.addEventListener('pointermove',event=>{
+if(event.pointerType==='touch'||activeTouch!==null)return;
+updatePointer(event.clientX,event.clientY);
+},{passive:true});
+document.documentElement.addEventListener('pointerleave',event=>{
+if(event.pointerType==='touch'||activeTouch!==null)return;
+clearReturn();pointer=null;schedule();
+});
+window.addEventListener('touchstart',event=>{
+if(activeTouch!==null||!event.changedTouches.length)return;
+const touch=event.changedTouches[0];activeTouch=touch.identifier;
+updatePointer(touch.clientX,touch.clientY);
+},{passive:true});
+window.addEventListener('touchmove',event=>{
+const touch=Array.from(event.touches).find(t=>t.identifier===activeTouch);
+if(touch)updatePointer(touch.clientX,touch.clientY);
+},{passive:true});
+window.addEventListener('touchend',event=>{
+if(Array.from(event.changedTouches).some(t=>t.identifier===activeTouch))releaseTouch();
+},{passive:true});
+window.addEventListener('touchcancel',event=>{
+if(Array.from(event.changedTouches).some(t=>t.identifier===activeTouch))clearTouch();
+},{passive:true});
+window.addEventListener('blur',()=>{focused=false;clearTouch();stopBlink();});
 window.addEventListener('focus',()=>{focused=true;planBlink();});
 function refresh(){schedule();if(!visible())stopBlink();else planBlink();}
 window.addEventListener('resize',refresh);
 window.addEventListener('scroll',refresh,{passive:true});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBlink();else planBlink();});
-motion.addEventListener('change',()=>{stopBlink();schedule();planBlink();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTouch();stopBlink();}else planBlink();});
+motion.addEventListener('change',()=>{clearTouch();stopBlink();schedule();planBlink();});
 planBlink();
 })();
 </script>
