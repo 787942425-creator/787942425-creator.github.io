@@ -135,15 +135,14 @@ const box=eyes.getBoundingClientRect();
 if(!visible())return;
 const dx=pointer.x-(box.left+box.width/2);
 const dy=pointer.y-(box.top+box.height/2);
-const distance=Math.hypot(dx,dy);
-const strength=Math.min(distance/220,1);
-const nx=distance?dx/distance*strength:0;
-const ny=distance?dy/distance*strength:0;
-// Rightward glance raises the right eye and makes it a little larger.
+// Independent axes keep upward/downward gaze clear even near screen corners.
+const nx=Math.max(-1,Math.min(1,dx/220));
+const ny=Math.max(-1,Math.min(1,dy/180));
+// Rightward glance makes the screen-right eye smaller and the left eye larger.
 eyes.style.setProperty('--look-tilt',(-nx*12).toFixed(2)+'deg');
 pupils.forEach((p,index)=>{
-const scale=1+nx*(index===1?.18:-.18);
-p.style.transform='translate('+(nx*15).toFixed(2)+'px,'+(ny*12).toFixed(2)+'px) scale('+scale.toFixed(3)+')';
+const scale=1+nx*(index===1?-.18:.18);
+p.style.transform='translate('+(nx*18).toFixed(2)+'px,'+(ny*22).toFixed(2)+'px) scale('+scale.toFixed(3)+')';
 });
 }
 function schedule(){if(!frame)frame=requestAnimationFrame(look);}
