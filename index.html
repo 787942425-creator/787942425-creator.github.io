@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="咪宝姐作品合集 · Mibaojie’s Creative Collection。浏览画作与创作作品。">
+<meta name="description" content="林静闻的作品合集 · Jingwen Lin’s Portfolio。浏览画作与创作作品。">
 <meta name="theme-color" content="#ffffff">
-<title>咪宝姐作品合集 · Mibaojie’s Creative Collection</title>
+<title>林静闻的作品合集 · Jingwen Lin’s Portfolio</title>
 <style>
 :root{--paper:#ffffff;--ink:#000000;--muted:#666666;--accent:#000000;--line:#eeeeee}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}
@@ -47,7 +47,10 @@ nav{position:absolute;top:0;left:0;right:0;border:0;z-index:1}
 .eyes{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(var(--look-tilt,0deg));display:flex;gap:34px;pointer-events:none;transition:transform 140ms ease-out}
 .eye{position:relative;display:block;width:64px;height:74px}
 .pupil{position:absolute;left:11px;top:10px;width:42px;height:54px;transition:transform 100ms ease-out}
-.pupil::before{content:"";display:block;width:100%;height:100%;background:#000;border-radius:50%;transform-origin:center}
+.pupil::before{content:"";position:absolute;left:0;top:0;width:100%;height:100%;background:#000;border-radius:50%;transform-origin:center}
+.eyes.squinting .pupil::before{top:calc(50% - 4px);height:8px;border-radius:999px}
+.eyes.angry .pupil::before{clip-path:inset(50% 0 0 0);transform:translateY(-13.5px) rotate(12deg)}
+.eyes.angry .eye:last-child .pupil::before{transform:translateY(-13.5px) rotate(-12deg)}
 .eyes.blinking .pupil::before{animation:blink 240ms ease-in-out}
 @keyframes blink{0%,100%{transform:scaleY(1)}40%,60%{transform:scaleY(.055)}}
 .hero-copy{position:absolute;top:calc(50% + 120px);left:0;right:0;text-align:center}
@@ -63,15 +66,15 @@ nav{position:absolute;top:0;left:0;right:0;border:0;z-index:1}
 <body>
 <a class="skip" href="#works">跳到作品</a>
 <header class="wrap">
-<nav aria-label="主导航"><a class="brand" href="#">咪宝姐</a><div class="nav-links"><a href="#works">作品</a><a href="#contact">联系</a></div></nav>
+<nav aria-label="主导航"><a class="brand" href="#">林静闻</a><div class="nav-links"><a href="#works">作品</a><a href="#contact">联系</a></div></nav>
 <div class="hero">
   <div class="eyes" id="eyes" aria-hidden="true">
     <span class="eye"><span class="pupil"></span></span>
     <span class="eye"><span class="pupil"></span></span>
   </div>
   <div class="hero-copy">
-    <h1>咪宝姐作品合集</h1>
-    <p class="english" lang="en">Mibaojie’s Creative Collection</p>
+    <h1>林静闻的作品合集</h1>
+    <p class="english" lang="en">Jingwen Lin’s Portfolio</p>
     <a class="browse" href="#works">浏览作品 <span aria-hidden="true">↓</span></a>
   </div>
 </div>
@@ -90,7 +93,7 @@ nav{position:absolute;top:0;left:0;right:0;border:0;z-index:1}
 <div class="contact-actions"><span>微信：<span id="wechat">15336513023</span></span><button class="copy" id="copy-wechat" type="button" hidden>复制微信号</button><span class="status" id="copy-status" role="status"></span></div>
 </section>
 </main>
-<footer><div class="wrap">© 2026 咪宝姐作品合集</div></footer>
+<footer><div class="wrap">© 2026 林静闻的作品合集</div></footer>
 <dialog id="viewer" aria-label="作品大图" aria-describedby="viewer-caption"><button class="close" type="button" aria-label="关闭作品大图">关闭</button><img id="viewer-image" alt=""><p class="dialog-caption" id="viewer-caption"></p></dialog>
 <script>
 const viewer=document.getElementById('viewer');
@@ -142,21 +145,30 @@ const ny=Math.max(-1,Math.min(1,dy/180));
 eyes.style.setProperty('--look-tilt',(-nx*12).toFixed(2)+'deg');
 pupils.forEach((p,index)=>{
 const scale=1+nx*(index===1?-.18:.18);
-p.style.transform='translate('+(nx*18).toFixed(2)+'px,'+(ny*22).toFixed(2)+'px) scale('+scale.toFixed(3)+')';
+// A tilted circular eye projects to a shorter ellipse for either vertical direction.
+// Both eyes share the same vertical perspective; only horizontal gaze changes relative size.
+const verticalPerspective=1-Math.abs(ny)*.28;
+const sx=scale;
+const sy=scale*verticalPerspective;
+p.style.transform='translate('+(nx*18).toFixed(2)+'px,'+(ny*22).toFixed(2)+'px) scale('+sx.toFixed(3)+','+sy.toFixed(3)+')';
 });
 }
 function schedule(){if(!frame)frame=requestAnimationFrame(look);}
 function stopBlink(){
 clearTimeout(blinkTimer);clearTimeout(openTimer);
-blinkTimer=0;openTimer=0;eyes.classList.remove('blinking');
+blinkTimer=0;openTimer=0;eyes.classList.remove('blinking','squinting','angry');
 }
 function planBlink(){
 if(blinkTimer||openTimer||motion.matches||document.hidden||!focused||!visible())return;
 blinkTimer=setTimeout(()=>{
 blinkTimer=0;
 if(motion.matches||document.hidden||!focused||!visible())return;
-eyes.classList.add('blinking');
-openTimer=setTimeout(()=>{openTimer=0;eyes.classList.remove('blinking');planBlink();},260);
+// Blinks are most common; longer expressions appear occasionally.
+const choice=Math.random();
+const expression=choice<.65?'blinking':choice<.90?'squinting':'angry';
+const duration=expression==='blinking'?260:expression==='squinting'?900+Math.random()*700:800+Math.random()*400;
+eyes.classList.add(expression);
+openTimer=setTimeout(()=>{openTimer=0;eyes.classList.remove('blinking','squinting','angry');planBlink();},duration);
 },2500+Math.random()*4000);
 }
 window.addEventListener('pointermove',event=>{pointer={x:event.clientX,y:event.clientY};schedule();},{passive:true});
