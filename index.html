@@ -41,6 +41,9 @@ dialog::backdrop{background:rgba(25,18,16,.8)}dialog img{display:block;max-width
 @media(max-width:760px){.wrap{width:calc(100% - 36px)}.hero{gap:28px;padding:40px 0 48px}.intro{font-size:15px}.gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 18px;padding-bottom:48px}.contact{align-items:flex-start;flex-direction:column;gap:24px}}
 @media(max-width:520px){nav{padding:18px 0}.nav-links{gap:18px}.hero{grid-template-columns:1fr}.hero-art img{max-height:420px}h1{font-size:46px}.section-heading{align-items:flex-start;flex-direction:column;gap:4px}.gallery{grid-template-columns:1fr}.work img{aspect-ratio:auto;max-height:520px}.art-link{padding:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+
+.pixel-cat{position:fixed;left:0;top:0;width:80px;height:80px;z-index:5;pointer-events:none;image-rendering:pixelated;contain:strict;will-change:transform}
+@media(max-width:520px){.pixel-cat{width:64px;height:64px}}
 </style>
 </head>
 <body>
@@ -68,6 +71,7 @@ dialog::backdrop{background:rgba(25,18,16,.8)}dialog img{display:block;max-width
 </main>
 <footer><div class="wrap">© 2026 我的画作</div></footer>
 <dialog id="viewer" aria-label="作品大图" aria-describedby="viewer-caption"><button class="close" type="button" aria-label="关闭作品大图">关闭</button><img id="viewer-image" alt=""><p class="dialog-caption" id="viewer-caption"></p></dialog>
+<canvas id="pixel-cat" class="pixel-cat" width="20" height="20" aria-hidden="true" hidden></canvas>
 <script>
 const viewer=document.getElementById('viewer');
 const image=document.getElementById('viewer-image');
@@ -92,6 +96,76 @@ const status=document.getElementById('copy-status');
 try{await navigator.clipboard.writeText(document.getElementById('wechat').textContent);status.textContent='已复制，可以到微信添加。';}
 catch{status.textContent='未能自动复制，请长按或选中上方微信号复制。';}
 });
+
+// A small native pixel sprite: no image downloads or animation dependencies.
+(()=>{
+const cat=document.getElementById('pixel-cat');
+const ctx=cat.getContext('2d');
+if(!ctx)return;
+const palette={o:'#344b75',b:'#79b9ec',s:'#5091ce',l:'#c0e5ff',p:'#efa8bc',w:'#fff9ed',e:'#253952'};
+const pixels=[
+'....................',
+'....oo......oo......',
+'...obbo....obbo.....',
+'...obpboooobpbo.....',
+'...obbbbbbbbbbo.....',
+'..obbbbbbbbbbbbo....',
+'..obblbbbbblbbbo....',
+'..obbewbbbewbbbo....',
+'..obppbbpbbppbbo....',
+'...obblwllwlbbo.....',
+'....oblllllbbo......',
+'.....osbbbsbo...oo..',
+'....obsbbbsbbo.obbo.',
+'....oblllllbbo.obbo.',
+'....oblllllbboobbo..',
+'....obslllsbbbbo....',
+'.....obbbbbboo......',
+'.....obbobbbo.......',
+'.....ooo.oooo.......',
+'....................'];
+const motion=matchMedia('(prefers-reduced-motion: reduce)');
+let x=24,y=120,tx=x,ty=y,facing=1,frame=0,lastTime=0;
+const limit=(v,max)=>Math.max(0,Math.min(v,Math.max(0,max)));
+function bounds(){const size=cat.getBoundingClientRect().width;tx=limit(tx,innerWidth-size);ty=limit(ty,innerHeight-size);x=limit(x,innerWidth-size);y=limit(y,innerHeight-size);}
+function paint(walking,time){
+ctx.clearRect(0,0,20,20);ctx.save();
+if(facing<0){ctx.translate(20,0);ctx.scale(-1,1);}
+const step=walking?Math.floor(time/130)%2:0;
+pixels.forEach((row,py)=>[...row].forEach((color,px)=>{
+if(!palette[color])return;
+ctx.fillStyle=palette[color];ctx.fillRect(px,py+(py>=17?((px<9?step:-step)):0),1,1);
+}));ctx.restore();
+}
+function place(){cat.style.transform='translate3d('+Math.round(x)+'px,'+Math.round(y)+'px,0)';}
+function tick(time){
+frame=0;
+if(document.hidden||motion.matches)return;
+const dt=Math.min((time-lastTime)||16,50);lastTime=time;
+const dx=tx-x,dy=ty-y;
+const walking=Math.hypot(dx,dy)>1;
+if(walking){if(Math.abs(dx)>1)facing=dx<0?-1:1;const amount=1-Math.exp(-dt/110);x+=dx*amount;y+=dy*amount;}
+else{x=tx;y=ty;}
+place();paint(walking,time);
+if(walking)frame=requestAnimationFrame(tick);
+}
+function start(){if(!frame&&!motion.matches&&!document.hidden){lastTime=0;frame=requestAnimationFrame(tick);}}
+window.addEventListener('pointermove',event=>{
+if(motion.matches)return;
+const size=cat.getBoundingClientRect().width;
+// Leave a gap beside the pointer, and stay entirely inside the viewport.
+tx=event.clientX+size+18>innerWidth?event.clientX-size-18:event.clientX+18;
+ty=event.clientY-size/2;bounds();start();
+},{passive:true});
+window.addEventListener('resize',()=>{bounds();place();start();});
+function stop(){if(frame)cancelAnimationFrame(frame);frame=0;paint(false,0);}
+motion.addEventListener('change',()=>{if(motion.matches)stop();else start();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else start();});
+bounds();place();paint(false,0);cat.hidden=false;
+})();
+
 </script>
 </body>
 </html>
+
+
